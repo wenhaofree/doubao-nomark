@@ -1,0 +1,13 @@
+{
+	"name": "doubao-nomark",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"deploy": "bash ./scripts/cloudflare-worker.sh deploy",
+		"dev": "bash ./scripts/cloudflare-worker.sh dev",
+		"start": "bash ./scripts/cloudflare-worker.sh dev"
+	},
+	"devDependencies": {
+		"wrangler": "^4.80.0"
+	}
+}

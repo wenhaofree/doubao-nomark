@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "doubao-nomark",
+  "main": "worker.py",
+  "compatibility_date": "2026-04-27",
+  "compatibility_flags": [
+    "python_workers",
+    "python_dedicated_snapshot",
+    "disable_python_external_sdk"
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
