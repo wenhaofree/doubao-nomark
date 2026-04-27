@@ -121,6 +121,43 @@
             transition: border-color 0.2s;
         }
 
+        .input-with-clear {
+            position: relative;
+            flex: 1;
+        }
+
+        .input-with-clear .input-field {
+            width: 100%;
+            padding-right: 36px;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: #d0d0d0;
+            color: #ffffff;
+            border-radius: 50%;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #a0a0a0;
+        }
+
+        .clear-btn.hidden {
+            display: none;
+        }
+
         .input-field:focus {
             outline: none;
             border-color: #1f1f1f;
@@ -239,6 +276,9 @@
         .video-card video {
             width: 100%;
             height: auto;
+            max-height: 480px;
+            object-fit: contain;
+            background: #000000;
             display: block;
         }
 
@@ -595,7 +635,7 @@
                     已提取 <span>1</span> 个视频
                 </div>
             </div>
-            <p>一键提取豆包对话中的高清图片和视频，无水印、无压缩</p>
+            <p>一键提取豆包/千问对话中的高清图片和视频，无水印、无压缩</p>
         </div>
 
         <div class="main-card">
@@ -622,15 +662,26 @@
                 </div>
 
                 <div class="input-group">
-                    <input 
-                        v-model="url" 
-                        type="text" 
-                        class="input-field" 
-                        :placeholder="currentTab === 'image' ? '输入豆包对话链接，例如：https://www.doubao.com/thread/xxxxx' : '输入豆包视频分享链接，例如：https://www.doubao.com/video-sharing?share_id=xxx&video_id=xxx'"
-                        @keyup.enter="parseUrl"
-                    >
-                    <button 
-                        class="btn btn-primary" 
+                    <div class="input-with-clear">
+                        <input
+                            v-model="url"
+                            type="text"
+                            class="input-field"
+                            :placeholder="currentTab === 'image' ? '输入包含图片的豆包/千问对话分享链接，例如：https://www.doubao.com/thread/xxxxx' : '输入豆包或者云雀视频分享链接，例如：https://www.doubao.com/video-sharing?share_id=xxx&video_id=xxx'"
+                            @keyup.enter="parseUrl"
+                            @input="toggleClearBtn"
+                        >
+                        <button
+                            class="clear-btn"
+                            :class="{ hidden: !url }"
+                            @click="clearInput"
+                            type="button"
+                        >
+                            ×
+                        </button>
+                    </div>
+                    <button
+                        class="btn btn-primary"
                         @click="parseUrl"
                         :disabled="loading || !url"
                     >
@@ -750,11 +801,17 @@
                     copiedIndex: null,
                     videoDownloading: false,
                     videoCopied: false,
-                    apiBaseUrl: window.location.origin
+                    apiBaseUrl: window.location.origin,
+                    urlRegex: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g
                 }
             },
 
             methods: {
+                extractUrl(text) {
+                    if (!text) return null;
+                    const matches = text.match(this.urlRegex);
+                    return matches ? matches[0] : null;
+                },
                 async copyToClipboard(text) {
                     try {
                         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -795,7 +852,14 @@
                 },
                 async parseUrl() {
                     if (!this.url.trim()) {
-                        this.showError('请输入豆包对话链接');
+                        this.showError('请输入包含链接的文本');
+                        return;
+                    }
+
+                    const extractedUrl = this.extractUrl(this.url);
+                    
+                    if (!extractedUrl) {
+                        this.showError('未在输入内容中找到有效的网址');
                         return;
                     }
 
@@ -810,8 +874,8 @@
 
                     try {
                         if (this.currentTab === 'image') {
-                            const response = await axios.get(`${this.apiBaseUrl}/parse`, {
-                                params: { url: this.url }
+                            const response = await axios.post(`${this.apiBaseUrl}/parse`, {
+                                url: extractedUrl
                             });
 
                             if (response.data.success) {
@@ -820,8 +884,8 @@
                                 this.showError('解析失败，请检查链接是否正确');
                             }
                         } else {
-                            const response = await axios.get(`${this.apiBaseUrl}/parse-video`, {
-                                params: { url: this.url }
+                            const response = await axios.post(`${this.apiBaseUrl}/parse-video`, {
+                                url: extractedUrl
                             });
 
                             if (response.data.success) {
@@ -925,7 +989,11 @@
                 showError(message) {
                     this.error = message;
                     setTimeout(() => this.error = '', 5000);
-                }
+                },
+                clearInput() {
+                    this.url = '';
+                },
+                toggleClearBtn() {}
             },
             mounted() {
                 const savedUrl = localStorage.getItem('lastUrl');
